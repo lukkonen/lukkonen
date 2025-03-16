@@ -1,0 +1,164 @@
+import requests
+from datetime import datetime
+
+# Ваш API ключ от Яндекс
+api_key = 'b12cf91c-69ca-410d-be4c-a2eb9b6f2970'
+
+# Словарь с кодами станций для популярных городов
+station_codes = {
+    'Москва': 'c213',
+    'Санкт-Петербург': 'c2',
+    'Казань': 'c43',
+    'Екатеринбург': 'c56',
+    'Новосибирск': 'c77',
+    'Сочи': 'c239',
+    'Владивосток': 'c98',
+    'Нижний Новгород': 'c204',
+    'Краснодар': 'c185',
+    'Самара': 'c199',
+    'Омск': 'c115',
+    'Челябинск': 'c221',
+    'Ростов-на-Дону': 'c186',
+    'Уфа': 'c216',
+    'Красноярск': 'c72',
+    'Воронеж': 'c37',
+    'Пермь': 'c123',
+    'Волгоград': 'c35',
+    'Калининград': 'c59',
+    'Тюмень': 'c212',
+    'Иркутск': 'c54',
+    'Хабаровск': 'c224',
+    'Ярославль': 'c234',
+    'Томск': 'c211',
+    'Оренбург': 'c116',
+    'Кемерово': 'c64',
+    'Астрахань': 'c7',
+    'Пенза': 'c121',
+    'Липецк': 'c85',
+    'Киров': 'c66',
+    'Чебоксары': 'c220',
+    'Тула': 'c210',
+    'Курск': 'c80',
+    'Ставрополь': 'c202',
+    'Махачкала': 'c94',
+    'Саратов': 'c197',
+    'Владимир': 'c36',
+    'Белгород': 'c22',
+    'Чита': 'c222',
+    'Ижевск': 'c52',
+    'Брянск': 'c31',
+    'Тверь': 'c208',
+    'Магнитогорск': 'c91',
+    'Сургут': 'c205',
+    'Вологда': 'c38',
+    'Курган': 'c79',
+    'Архангельск': 'c6',
+    'Мурманск': 'c104',
+    'Петрозаводск': 'c122',
+    'Сыктывкар': 'c206',
+    'Йошкар-Ола': 'c58',
+    'Нальчик': 'c106',
+    'Грозный': 'c41',
+    'Владикавказ': 'c34',
+    'Улан-Удэ': 'c214',
+    'Черкесск': 'c219',
+    'Саранск': 'c198',
+    'Петропавловск-Камчатский': 'c124',
+    'Южно-Сахалинск': 'c233',
+    'Анадырь': 'c4',
+    'Нарьян-Мар': 'c107',
+    'Ханты-Мансийск': 'c225',
+    'Биробиджан': 'c24',
+    'Горно-Алтайск': 'c40',
+    'Кызыл': 'c81',
+    'Магас': 'c90',
+    'Майкоп': 'c92',
+    'Элиста': 'c231',
+    'Абакан': 'c1',
+    'Благовещенск': 'c25',
+    'Псков': 'c129',
+    'Смоленск': 'c200',
+    'Тамбов': 'c207',
+    'Иваново': 'c51',
+    'Кострома': 'c74',
+    'Великий Новгород': 'c33',
+    'Петрозаводск': 'c122',
+    'Севастополь': 'c198',
+    'Симферополь': 'c199',
+    'Череповец': 'c218',
+}
+
+# Запрос данных у пользователя
+from_city = input("Введите город отправления: ")
+to_city = input("Введите город прибытия: ")
+departure_date = input("Введите дату отправления (в формате ГГГГ-ММ-ДД): ")
+
+# Получаем коды станций для городов
+from_city_put = station_codes.get(from_city)
+to_city_put = station_codes.get(to_city)
+
+if not from_city_put or not to_city_put:
+    print("Не удалось найти коды станций для указанных городов.")
+else:
+    # Параметры запроса
+    params = {
+        'apikey': api_key,
+        'format': 'json',  # Формат ответа (JSON или XML)
+        'from': from_city_put,  # Код станции отправления
+        'to': to_city_put,  # Код станции прибытия
+        'lang': 'ru_RU',  # Язык ответа
+        'page': 1,  # Номер страницы
+        'date': departure_date,  # Дата в формате YYYY-MM-DD
+        'transport_types': 'train,plane'  # Ищем поезда и самолеты
+    }
+
+    # URL API
+    url = 'https://api.rasp.yandex.net/v3.0/search/'
+
+    # Отправка GET-запроса
+    response = requests.get(url, params=params)
+
+    # Проверка статуса ответа
+    if response.status_code == 200:
+        # Преобразование ответа в JSON
+        data = response.json()
+
+        # Список для хранения маршрутов
+        routes = []
+
+        # Извлечение данных о маршрутах
+        for segment in data['segments']:
+            departure_time = datetime.fromisoformat(segment['departure'])
+            arrival_time = datetime.fromisoformat(segment['arrival'])
+            travel_time = (arrival_time - departure_time).total_seconds() / 3600  # Время в часах
+
+            route_info = {
+                'transport_type': segment['thread']['transport_type'],
+                'transport_number': segment['thread']['number'],
+                'transport_title': segment['thread']['title'],
+                'from_station': segment['from']['title'],
+                'to_station': segment['to']['title'],
+                'departure_time': departure_time.strftime('%H:%M'),
+                'arrival_time': arrival_time.strftime('%H:%M'),
+                'travel_time': travel_time
+            }
+            routes.append(route_info)
+
+        # Сортировка маршрутов по времени в пути
+        routes.sort(key=lambda x: x['travel_time'])
+
+        # Вывод самого быстрого маршрута
+        if routes:
+            fastest_route = routes[0]
+            print("\nСамый быстрый маршрут:")
+            print(f"Транспорт: {fastest_route['transport_type']} (№ {fastest_route['transport_number']})")
+            print(f"Рейс: {fastest_route['transport_title']}")
+            print(f"Отправление: {fastest_route['from_station']} в {fastest_route['departure_time']}")
+            print(f"Прибытие: {fastest_route['to_station']} в {fastest_route['arrival_time']}")
+            print(f"Маршрут: {fastest_route['from_station']} -> {fastest_route['to_station']}")
+            print(f"Время в пути: {fastest_route['travel_time']:.2f} часов")
+        else:
+            print("Маршруты не найдены.")
+    else:
+        print(f'Ошибка: {response.status_code}')
+        print(response.text)
